@@ -1,4 +1,4 @@
-#📚 Literature Review Assistant
+📚 Literature Review Assistant
 
 An Agentic AI-powered console application that automates the process of retrieving and summarizing academic research papers.
 The system uses OpenRouter for multi-model LLM access and integrates with the arXiv API for real-time paper search and analysis.

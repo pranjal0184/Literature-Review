@@ -57,33 +57,31 @@ arxiv_tool = FunctionTool(
 
 #agent and  team factory
 def build_team() -> RoundRobinGroupChat:
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+    api_key = os.getenv("OPENROUTER_API_KEY")
+
     if not api_key:
         raise RuntimeError(
-            "Missing API key. Set OPENAI_API_KEY or OPENROUTER_API_KEY (your OpenRouter key starts with sk-or-...)."
+            "Missing OPENROUTER_API_KEY in your .env file"
         )
 
-    # Tell Autogen what this non-OpenAI model can do
-    DEEPSEEK_MODEL = "deepseek/deepseek-chat-v3.1:free"
-    DEEPSEEK_MODEL_INFO = {
+    MODEL = "google/gemma-4-31b-it:free"
+
+    MODEL_INFO = {
         "provider": "openrouter",
-        "family": "deepseek",
+        "family": "gemma",
         "endpoint_type": "chat-completion",
-        "context_length": 8192,
+        "context_length": 32768,
         "function_calling": True,
-        "reasoning": True,
         "vision": False,
-        "input_audio": False,
-        "output_audio": False,
-        "structured_output": True,
         "json_output": True,
+        "structured_output": True,
     }
 
     llm_client = OpenAIChatCompletionClient(
-        model=DEEPSEEK_MODEL,
+        model=MODEL,
         api_key=api_key,
-        base_url=os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
-        model_info=DEEPSEEK_MODEL_INFO,   # <-- important
+        base_url="https://openrouter.ai/api/v1",
+        model_info=MODEL_INFO,
     )
 
     search_agent = AssistantAgent(
@@ -112,9 +110,9 @@ def build_team() -> RoundRobinGroupChat:
     )
 
     return RoundRobinGroupChat(
-        participants=[search_agent, summarizer], max_turns=2
-        )
-
+        participants=[search_agent, summarizer],
+        max_turns=2,
+    )
 
 
 #orchestrator is like a function

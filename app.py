@@ -116,18 +116,7 @@ html, body, .stApp {
   line-height: 1.1;
   margin: 0 0 0.5rem 0;
 }
-.page-title em {
-  font-style: italic;
-  color: var(--gold) !important;
-}
-.page-desc {
-  font-size: 0.95rem;
-  color: var(--muted) !important;
-  font-weight: 300;
-  max-width: 520px;
-  line-height: 1.65;
-  margin-bottom: 2.2rem;
-}
+
 
 /* ── Input zone ───────────────────────────────── */
 .stTextInput label,
@@ -357,11 +346,7 @@ with st.sidebar:
 
 # ---------- Header ----------
 st.markdown("<div class='page-eyebrow'>AI-assisted literature discovery</div>", unsafe_allow_html=True)
-st.markdown("<h1 class='page-title'>Read the field.<br><em>In minutes.</em></h1>", unsafe_allow_html=True)
-st.markdown(
-    "<p class='page-desc'>Enter a research topic and LitScope fetches relevant papers from arXiv, then drafts a structured literature review — so you can skip the groundwork.</p>",
-    unsafe_allow_html=True
-)
+st.markdown("<h1 class='page-title'>LitScope</h1>", unsafe_allow_html=True)
 
 # ---------- Inputs ----------
 col1, col2, col3 = st.columns([4, 2, 2], vertical_alignment="bottom")

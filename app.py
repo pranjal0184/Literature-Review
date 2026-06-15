@@ -431,6 +431,6 @@ if go and query:
             asyncio.set_event_loop(loop)
             loop.run_until_complete(_runner(query, n_papers))
             status.update(label="Review complete", state="complete")
-            st.toast("Done", icon="✓")
+            st.toast("Done", icon="✅")
 elif go and not query:
     st.warning("Enter a research topic to get started.")

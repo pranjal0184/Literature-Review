@@ -379,7 +379,7 @@ def _render_message(role: str, content: str):
         pill_cls = "pill-summarizer"
         label = "Summarizer"
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar="◎"):
         st.markdown(
             f"<span class='agent-pill {pill_cls}'>{label}</span>",
             unsafe_allow_html=True
@@ -425,7 +425,7 @@ if go and query:
         try:
             asyncio.run(_runner(query, n_papers))
             status.update(label="Review complete", state="complete")
-            st.toast("Done", icon="✓")
+            st.toast("Done", icon="✅")
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)

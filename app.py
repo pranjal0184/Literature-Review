@@ -1,6 +1,10 @@
 import asyncio
+import nest_asyncio
 import streamlit as st
 from backend import run_litrev
+
+# Allow nested event loops inside Streamlit
+nest_asyncio.apply()
 
 # ---------- Page & Theme ----------
 st.set_page_config(
@@ -116,7 +120,6 @@ html, body, .stApp {
   line-height: 1.1;
   margin: 0 0 0.5rem 0;
 }
-
 
 /* ── Input zone ───────────────────────────────── */
 .stTextInput label,
@@ -267,7 +270,7 @@ html, body, .stApp {
   color: var(--text) !important;
   font-size: 0.93rem !important;
 }
-.review-card h1,.review-card h2,.review-card h3 {
+.review-card h1, .review-card h2, .review-card h3 {
   color: var(--text) !important;
   font-family: "DM Serif Display", serif !important;
   font-weight: 400 !important;
@@ -316,6 +319,12 @@ p, span, div, li { color: var(--text) !important; }
 a { color: var(--gold) !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# ---------- Session State Initialization ----------
+if "final_review_md" not in st.session_state:
+    st.session_state.final_review_md = ""
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # ---------- Sidebar ----------
 with st.sidebar:
@@ -366,9 +375,6 @@ st.write("")
 # ---------- Tabs ----------
 tab_conv, tab_final = st.tabs(["Conversation", "Final Review"])
 
-if "final_review_md" not in st.session_state:
-    st.session_state.final_review_md = ""
-
 
 def _render_message(role: str, content: str):
     role_lower = role.strip().lower()
@@ -387,50 +393,66 @@ def _render_message(role: str, content: str):
         st.markdown(content)
 
 
-async def _runner(topic: str, num: int):
+async def _run_pipeline(topic: str, num: int, message_container):
+    async for frame in run_litrev(topic, num_papers=num):
+        role, *rest = frame.split(":", 1)
+        content = rest[0].strip() if rest else ""
+
+        # Save to session state so history persists across reruns
+        st.session_state.messages.append({"role": role, "content": content})
+
+        # Stream update into the live container
+        with message_container:
+            _render_message(role, content)
+
+        if role.strip().lower().startswith("summarizer"):
+            st.session_state.final_review_md = content
+
+
+# ---------- Execution Trigger ----------
+if go and query:
+    st.session_state.messages = []
+    st.session_state.final_review_md = ""
+
     with tab_conv:
         st.markdown("<div class='section-label'>Live agent output</div>", unsafe_allow_html=True)
-        container = st.container()
-        async for frame in run_litrev(topic, num_papers=num):
-            role, *rest = frame.split(":", 1)
-            content = rest[0].strip() if rest else ""
-            with container:
-                _render_message(role, content)
-            if role.strip().lower().startswith("summarizer"):
-                st.session_state.final_review_md = content
+        live_container = st.container()
 
-    with tab_final:
-        st.markdown("<div class='section-label'>Generated review</div>", unsafe_allow_html=True)
-        if st.session_state.final_review_md:
-            st.markdown(
-                f"<div class='review-card'>{st.session_state.final_review_md}</div>",
-                unsafe_allow_html=True
-            )
-            st.download_button(
-                "Download as Markdown",
-                data=st.session_state.final_review_md.encode("utf-8"),
-                file_name="literature_review.md",
-                mime="text/markdown",
-                use_container_width=True,
-            )
-        else:
-            st.info("No review yet — run a search from the Conversation tab.")
-
-
-# ---------- Run ----------
-if go and query:
-    with st.status("Scanning arXiv and synthesizing insights…", expanded=True) as status:
-        st.write("Querying arXiv for relevant papers")
-        st.write("Coordinating search and summarization agents")
-        try:
-            asyncio.run(_runner(query, n_papers))
-            status.update(label="Review complete", state="complete")
-            st.toast("Done",  icon="✅")
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(_runner(query, n_papers))
-            status.update(label="Review complete", state="complete")
-            st.toast("Done", icon="✅")
+        with st.status("Scanning arXiv and synthesizing insights…", expanded=True) as status:
+            st.write("Querying arXiv for relevant papers")
+            st.write("Coordinating search and summarization agents")
+            try:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(_run_pipeline(query, n_papers, live_container))
+                status.update(label="Review complete", state="complete")
+                st.toast("Done", icon="✅")
+            except Exception as e:
+                status.update(label="Failed", state="error")
+                st.error(f"Error during execution: {e}")
 elif go and not query:
     st.warning("Enter a research topic to get started.")
+
+# ---------- Tab 1: Render History on Rerun ----------
+with tab_conv:
+    if not go and st.session_state.messages:
+        st.markdown("<div class='section-label'>Live agent output</div>", unsafe_allow_html=True)
+        for msg in st.session_state.messages:
+            _render_message(msg["role"], msg["content"])
+
+# ---------- Tab 2: Persistent Final Review ----------
+with tab_final:
+    st.markdown("<div class='section-label'>Generated review</div>", unsafe_allow_html=True)
+    if st.session_state.final_review_md:
+        st.markdown(
+            f"<div class='review-card'>{st.session_state.final_review_md}</div>",
+            unsafe_allow_html=True
+        )
+        st.download_button(
+            "Download as Markdown",
+            data=st.session_state.final_review_md.encode("utf-8"),
+            file_name="literature_review.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    else:
+        st.info("No review yet — run a search from the Conversation tab.")

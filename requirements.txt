@@ -9,3 +9,4 @@ autogen-ext[openai]
 autogenstudio
 streamlit
 arxiv
+nest-asyncio

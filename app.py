@@ -381,17 +381,18 @@ def _render_message(role: str, content: str):
     if "search" in role_lower:
         pill_cls = "pill-search"
         label = "Search Agent"
+        avatar = "🔍"  # Search agent avatar
     else:
         pill_cls = "pill-summarizer"
         label = "Summarizer"
+        avatar = "📝"  # Summarizer avatar
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=avatar):
         st.markdown(
             f"<span class='agent-pill {pill_cls}'>{label}</span>",
             unsafe_allow_html=True
         )
         st.markdown(content)
-
 
 async def _run_pipeline(topic: str, num: int, message_container):
     async for frame in run_litrev(topic, num_papers=num):
